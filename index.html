@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Escala de Plantão</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --azul:#0056A4;
+  --verde:#00A428;
+}
+body{
+  font-family:Arial;
+  background:#f2f2f2;
+  padding:20px;
+  margin:0;
+}
+h1{
+  color:var(--azul);
+  margin-bottom:10px;
+}
+.controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:15px 0;
+}
+select, button{
+  padding:8px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+button{
+  background:var(--verde);
+  color:white;
+  border:none;
+  cursor:pointer;
+}
+.calendar{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:10px;
+}
+.day{
+  background:white;
+  padding:10px;
+  border-radius:8px;
+  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+  min-height:120px;
+}
+.day h3{
+  margin:0 0 5px;
+  color:var(--verde);
+}
+.shift{
+  font-size:0.9rem;
+  margin:4px 0;
+}
+.empty{
+  background:transparent;
+  box-shadow:none;
+}
+@media(max-width:600px){
+  .calendar{
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+</style>
+</head>
+<body>
+
+<h1>Escala de Plantão</h1>
+
+<div class="controls">
+  <select id="monthSelector"></select>
+  <select id="colabFilter">
+    <option value="todos">Todos os colaboradores</option>
+  </select>
+  <button onclick="window.print()">Imprimir / PDF</button>
+</div>
+
+<div id="calendar" class="calendar"></div>
+
+<script>
+// =============================
+// ESCALA — EDITAR AQUI
+// =============================
+const escala = {
+  "2025-01": {
+    "01": { manha:"Carlos", tarde:"Amanda", noite:"João" },
+    "02": { manha:"Pedro", tarde:"Amanda", noite:"Juliana" },
+    "03": { manha:"Marcos", tarde:"Lia", noite:"Jorge" }
+  },
+  "2025-02": {
+    "01": { manha:"Lucas", tarde:"Ana", noite:"Tiago" },
+    "02": { manha:"Amanda", tarde:"Joana", noite:"Carlos" }
+  }
+};
+
+// =============================
+// SISTEMA — NÃO PRECISA EDITAR
+// =============================
+
+const months = Object.keys(escala).sort();
+const monthSel = document.getElementById("monthSelector");
+const colabSel = document.getElementById("colabFilter");
+const calendar = document.getElementById("calendar");
+
+function loadMonths(){
+  months.forEach(m=>{
+    let opt = document.createElement("option");
+    let [y,mo] = m.split("-");
+    opt.value = m;
+    opt.textContent = `${mo}/${y}`;
+    monthSel.appendChild(opt);
+  });
+  monthSel.value = months[0];
+}
+
+function loadColab(){
+  const set = new Set();
+  Object.values(escala).forEach(m=>{
+    Object.values(m).forEach(d=>{
+      Object.values(d).forEach(n=>{
+        if(n) set.add(n);
+      });
+    });
+  });
+
+  [...set].sort().forEach(n=>{
+    let opt = document.createElement("option");
+    opt.value = n;
+    opt.textContent = n;
+    colabSel.appendChild(opt);
+  });
+}
+
+function draw(){
+  calendar.innerHTML = "";
+  let selectedMonth = monthSel.value;
+  let filter = colabSel.value;
+
+  let [year,mo] = selectedMonth.split("-").map(Number);
+  let days = new Date(year, mo, 0).getDate();
+  let first = new Date(year, mo-1, 1).getDay();
+
+  for(let i=0;i<first;i++){
+    let div = document.createElement("div");
+    div.className="empty";
+    calendar.appendChild(div);
+  }
+
+  for(let d=1; d<=days; d++){
+    let dayStr = String(d).padStart(2,"0");
+    let card = document.createElement("div");
+    card.className="day";
+
+    let title = document.createElement("h3");
+    title.textContent = dayStr;
+    card.appendChild(title);
+
+    let info = escala[selectedMonth][dayStr];
+
+    if(info){
+      [["Manhã","manha"],["Tarde","tarde"],["Noite","noite"]].forEach(([label,key])=>{
+        let nome = info[key];
+        if(!nome) return;
+        if(filter !== "todos" && filter !== nome) return;
+
+        let div = document.createElement("div");
+        div.className="shift";
+        div.innerHTML = `<stron
