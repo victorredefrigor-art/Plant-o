@@ -1,0 +1,180 @@
+!DOCTYPE html
+html lang=pt-BR
+head
+meta charset=UTF-8
+titleEscala de Plantãotitle
+meta name=viewport content=width=device-width,initial-scale=1
+style
+ Cores REDEFRIGOR 
+root{--azul#0056A4;--verde#00A428}
+
+body{font-familyArial,Helvetica,sans-serif;background#f4f4f4;padding20px;margin0;color#123}
+header{displayflex;align-itemscenter;justify-contentspace-between;gap12px;margin-bottom10px}
+h1{colorvar(--azul);margin0;font-size1.4rem;text-alignleft}
+.controls{displayflex;flex-wrapwrap;gap10px;align-itemscenter;justify-contentcenter;margin16px 0}
+#monthSelector,#colabFilter{padding8px;border-radius6px;border1px solid #cfcfcf;font-size1rem}
+#printBtn{backgroundvar(--verde);color#fff;bordernone;padding8px 12px;border-radius6px;cursorpointer}
+#printBtnhover{opacity.95}
+.calendar{displaygrid;grid-template-columnsrepeat(7,1fr);gap12px;margin-top14px}
+.day{background#fff;padding10px;border-radius8px;min-height110px;box-shadow0 2px 6px rgba(0,0,0,0.08);overflowhidden}
+.day h3{margin0 0 6px 0;colorvar(--verde);font-size1rem}
+.shift{font-size.88rem;margin4px 0;color#222}
+.empty{backgroundtransparent;box-shadownone;min-height30px}
+.legend{displayflex;gap12px;align-itemscenter;justify-contentcenter;margin-top12px;font-size.9rem;color#444}
+.logo{height50px}
+@media (max-width900px){
+  .calendar{grid-template-columnsrepeat(2,1fr)}
+}
+@media (max-width480px){
+  header{flex-directioncolumn;align-itemsflex-start}
+  .calendar{grid-template-columnsrepeat(1,1fr)}
+}
+@media print{
+  .controls, .legend {displaynone}
+  body{background#fff}
+}
+style
+head
+body
+
+header
+  div style=displayflex;align-itemscenter;gap12px
+    !-- Se tiver logo, salve como logo_redefrigor.png e descomente a linha abaixo --
+    !-- img src=logo_redefrigor.png alt=Logo class=logo --
+    h1Escala de Plantãoh1
+  div
+  div style=font-size.9rem;color#666Atualizado automaticamente pelo arquivo codeescala.jsoncodediv
+header
+
+div class=controls role=region aria-label=Controles da escala
+  select id=monthSelector aria-label=Selecionar mêsselect
+  select id=colabFilter aria-label=Filtrar colaborador
+    option value=todosTodos os colaboradoresoption
+  select
+  button id=printBtn title=Imprimir ou salvar em PDFImprimir  Salvar PDFbutton
+div
+
+div class=calendar id=calendar aria-live=politediv
+
+div class=legend
+  divstrongLegendastrong span style=colorvar(--verde)Manhã  Tarde  Noitespandiv
+div
+
+script
+
+  index.html - carrega escala.json (meses no formato YYYY-MM)
+  estrutura esperada (ex. escala.json)
+  {
+    2025-01 {
+      01 {manha Carlos, tardeAmanda,noiteJoão},
+      02 {...}
+    },
+    2025-02 { ... }
+  }
+
+
+let escala = {};
+const colaboradoresSet = new Set();
+
+async function loadEscala(){
+  try{
+    const res = await fetch('escala.json', {cache no-store});
+    if(!res.ok) throw new Error('Não foi possível carregar escala.json');
+    escala = await res.json();
+    populateMonths();
+    populateColaboradores();
+    drawCalendar();
+  }catch(err){
+    console.error(err);
+    document.getElementById('calendar').innerHTML = 'div style=grid-column1-1;padding20px;background#ffecec;border-radius8px;color#b00020Erro ao carregar escala.json — verifique o arquivo no repositório.div';
+  }
+}
+
+function populateMonths(){
+  const sel = document.getElementById('monthSelector');
+  sel.innerHTML = '';
+  const months = Object.keys(escala).sort();
+  months.forEach(m={
+    const opt = document.createElement('option');
+    opt.value = m;
+    const [y,mo]=m.split('-');
+    opt.textContent = `${mo}${y}`;
+    sel.appendChild(opt);
+  });
+  if(months.length0) sel.value = months[0];
+  sel.onchange = drawCalendar;
+}
+
+function populateColaboradores(){
+  colaboradoresSet.clear();
+  Object.values(escala).forEach(m={
+    Object.values(m).forEach(d={
+      Object.values(d).forEach(v={
+        if(v) colaboradoresSet.add(v);
+      });
+    });
+  });
+  const colSel = document.getElementById('colabFilter');
+   limpa mantendo o primeiro todos
+  colSel.querySelectorAll('optionnot([value=todos])').forEach(n=n.remove());
+  Array.from(colaboradoresSet).sort().forEach(name={
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    colSel.appendChild(opt);
+  });
+  colSel.onchange = drawCalendar;
+}
+
+function drawCalendar(){
+  const cal = document.getElementById('calendar');
+  cal.innerHTML = '';
+  const month = document.getElementById('monthSelector').value;
+  const filtro = document.getElementById('colabFilter').value;
+  if(!month  !escala[month]) return;
+  const [year,monthNum] = month.split('-').map(Number);
+   JS Sunday=0 ... Saturday=6
+  const firstDay = new Date(year, monthNum-1, 1).getDay();
+  const daysInMonth = new Date(year, monthNum, 0).getDate();
+
+   add empty placeholders before 1st
+  for(let i=0;ifirstDay;i++){
+    const e = document.createElement('div');
+    e.className = 'empty';
+    cal.appendChild(e);
+  }
+
+  for(let d=1; d=daysInMonth; d++){
+    const dd = String(d).padStart(2,'0');
+    const box = document.createElement('div');
+    box.className = 'day';
+    const title = document.createElement('h3');
+    title.textContent = dd;
+    box.appendChild(title);
+
+    const diaObj = escala[month] && escala[month][dd]  escala[month][dd]  null;
+    if(diaObj){
+      const addShift = (label, value) = {
+        if(!value) return;
+        if(filtro !== 'todos' && filtro !== value) return;
+        const el = document.createElement('div');
+        el.className = 'shift';
+        el.innerHTML = `strong${label}strong ${value}`;
+        box.appendChild(el);
+      };
+      addShift('Manhã', diaObj.manha  '');
+      addShift('Tarde', diaObj.tarde  '');
+      addShift('Noite', diaObj.noite  '');
+    }
+    cal.appendChild(box);
+  }
+}
+
+document.getElementById('printBtn').addEventListener('click', ()= window.print());
+
+ Carrega no start
+loadEscala();
+script
+
+body
+html
