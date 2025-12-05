@@ -1,180 +1,192 @@
-!DOCTYPE html
-html lang=pt-BR
-head
-meta charset=UTF-8
-titleEscala de Plantãotitle
-meta name=viewport content=width=device-width,initial-scale=1
-style
- Cores REDEFRIGOR 
-root{--azul#0056A4;--verde#00A428}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Escala de Plantão — Debug</title>
+<style>
+:root{--azul:#0056A4;--verde:#00A428}
+body{font-family:Arial,Helvetica,sans-serif;background:#f4f4f4;padding:18px;margin:0;color:#123}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+h1{color:var(--azul);margin:0;font-size:1.4rem}
+#status{padding:10px;border-radius:8px;margin-bottom:12px}
+.status-ok{background:#e8fff0;border:1px solid #c7f0d8;color:#054a22}
+.status-warn{background:#fff7e6;border:1px solid #f1dca8;color:#6a4a00}
+.status-err{background:#ffecec;border:1px solid #f0b4b4;color:#8a1a1a}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin:12px 0}
+#monthSelector,#colabFilter{padding:8px;border-radius:6px;border:1px solid #cfcfcf;font-size:1rem}
+#printBtn{background:var(--verde);color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-top:14px}
+.day{background:#fff;padding:10px;border-radius:8px;min-height:110px;box-shadow:0 2px 6px rgba(0,0,0,0.08);overflow:hidden}
+.day h3{margin:0 0 6px 0;color:var(--verde);font-size:1rem}
+.shift{font-size:.88rem;margin:4px 0;color:#222}
+.empty{background:transparent;box-shadow:none;min-height:30px}
+.logo{height:50px}
+@media (max-width:900px){.calendar{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:480px){header{flex-direction:column;align-items:flex-start}.calendar{grid-template-columns:repeat(1,1fr)}}
+@media print{.controls,#status{display:none};body{background:#fff}}
+</style>
+</head>
+<body>
 
-body{font-familyArial,Helvetica,sans-serif;background#f4f4f4;padding20px;margin0;color#123}
-header{displayflex;align-itemscenter;justify-contentspace-between;gap12px;margin-bottom10px}
-h1{colorvar(--azul);margin0;font-size1.4rem;text-alignleft}
-.controls{displayflex;flex-wrapwrap;gap10px;align-itemscenter;justify-contentcenter;margin16px 0}
-#monthSelector,#colabFilter{padding8px;border-radius6px;border1px solid #cfcfcf;font-size1rem}
-#printBtn{backgroundvar(--verde);color#fff;bordernone;padding8px 12px;border-radius6px;cursorpointer}
-#printBtnhover{opacity.95}
-.calendar{displaygrid;grid-template-columnsrepeat(7,1fr);gap12px;margin-top14px}
-.day{background#fff;padding10px;border-radius8px;min-height110px;box-shadow0 2px 6px rgba(0,0,0,0.08);overflowhidden}
-.day h3{margin0 0 6px 0;colorvar(--verde);font-size1rem}
-.shift{font-size.88rem;margin4px 0;color#222}
-.empty{backgroundtransparent;box-shadownone;min-height30px}
-.legend{displayflex;gap12px;align-itemscenter;justify-contentcenter;margin-top12px;font-size.9rem;color#444}
-.logo{height50px}
-@media (max-width900px){
-  .calendar{grid-template-columnsrepeat(2,1fr)}
-}
-@media (max-width480px){
-  header{flex-directioncolumn;align-itemsflex-start}
-  .calendar{grid-template-columnsrepeat(1,1fr)}
-}
-@media print{
-  .controls, .legend {displaynone}
-  body{background#fff}
-}
-style
-head
-body
+<header>
+  <div style="display:flex;align-items:center;gap:12px">
+    <!-- Se quiser logo, adicione arquivo logo_redefrigor.png no repo e descomente -->
+    <!-- <img src="logo_redefrigor.png" alt="Logo" class="logo"> -->
+    <h1>Escala de Plantão</h1>
+  </div>
+  <div style="font-size:.9rem;color:#666">Dados: <code>escala.json</code> (fallback embutido se necessário)</div>
+</header>
 
-header
-  div style=displayflex;align-itemscenter;gap12px
-    !-- Se tiver logo, salve como logo_redefrigor.png e descomente a linha abaixo --
-    !-- img src=logo_redefrigor.png alt=Logo class=logo --
-    h1Escala de Plantãoh1
-  div
-  div style=font-size.9rem;color#666Atualizado automaticamente pelo arquivo codeescala.jsoncodediv
-header
+<!-- STATUS: mensagens de erro / aviso -->
+<div id="status" class="status-warn">
+  Carregando... (verifique o console do navegador se algo der errado — pressione F12 → Console)
+</div>
 
-div class=controls role=region aria-label=Controles da escala
-  select id=monthSelector aria-label=Selecionar mêsselect
-  select id=colabFilter aria-label=Filtrar colaborador
-    option value=todosTodos os colaboradoresoption
-  select
-  button id=printBtn title=Imprimir ou salvar em PDFImprimir  Salvar PDFbutton
-div
+<div class="controls" role="region" aria-label="Controles da escala">
+  <select id="monthSelector" aria-label="Selecionar mês"></select>
+  <select id="colabFilter" aria-label="Filtrar colaborador">
+    <option value="todos">Todos os colaboradores</option>
+  </select>
+  <button id="printBtn" title="Imprimir ou salvar em PDF">Imprimir / Salvar PDF</button>
+</div>
 
-div class=calendar id=calendar aria-live=politediv
+<div id="calendar" class="calendar" aria-live="polite"></div>
 
-div class=legend
-  divstrongLegendastrong span style=colorvar(--verde)Manhã  Tarde  Noitespandiv
-div
+<script>
+/*
+  Modo de operação:
+  1) Tenta fetch('escala.json')
+  2) Se OK e JSON válido -> usa ele
+  3) Se falhar -> usa DEFAULT_ESCALA embutido (para teste/local)
+  4) Mensagens claras no #status
+*/
 
-script
-
-  index.html - carrega escala.json (meses no formato YYYY-MM)
-  estrutura esperada (ex. escala.json)
-  {
-    2025-01 {
-      01 {manha Carlos, tardeAmanda,noiteJoão},
-      02 {...}
-    },
-    2025-02 { ... }
+// ----- DEFAULT ESCALA (fallback) -----
+const DEFAULT_ESCALA = {
+  "2025-01": {
+    "01": {"manha":"Carlos","tarde":"Amanda","noite":"João"},
+    "02": {"manha":"Pedro","tarde":"Amanda","noite":"Juliana"},
+    "03": {"manha":"Marcos","tarde":"Lia","noite":"Jorge"}
   }
+};
 
-
+// estado
 let escala = {};
 const colaboradoresSet = new Set();
 
-async function loadEscala(){
+const statusDiv = document.getElementById('status');
+const monthSel = document.getElementById('monthSelector');
+const colSel = document.getElementById('colabFilter');
+const calendar = document.getElementById('calendar');
+
+function setStatus(type, text) {
+  statusDiv.className = '';
+  if(type==='ok') statusDiv.classList.add('status-ok');
+  else if(type==='warn') statusDiv.classList.add('status-warn');
+  else statusDiv.classList.add('status-err');
+  statusDiv.innerHTML = text;
+}
+
+// tenta carregar o JSON com fetch
+async function tryLoadEscala() {
+  setStatus('warn','Tentando carregar <code>escala.json</code> via fetch...');
   try{
-    const res = await fetch('escala.json', {cache no-store});
-    if(!res.ok) throw new Error('Não foi possível carregar escala.json');
-    escala = await res.json();
-    populateMonths();
-    populateColaboradores();
-    drawCalendar();
+    const res = await fetch('escala.json', {cache:'no-store'});
+    if(!res.ok) throw new Error('fetch retornou status ' + res.status);
+    const data = await res.json();
+    escala = data;
+    setStatus('ok','Carregado <code>escala.json</code> com sucesso. Usando dados do repositório.');
   }catch(err){
+    console.warn('fetch escala.json falhou:', err);
+    escala = DEFAULT_ESCALA;
+    setStatus('warn','Não foi possível carregar <code>escala.json</code>. Usando dados <em>fallback</em> embutidos (útil para teste local). Se você estiver abrindo o arquivo com file://, use GitHub Pages ou rode um servidor local. Veja console para detalhes.');
     console.error(err);
-    document.getElementById('calendar').innerHTML = 'div style=grid-column1-1;padding20px;background#ffecec;border-radius8px;color#b00020Erro ao carregar escala.json — verifique o arquivo no repositório.div';
   }
+  populateMonths();
+  populateColaboradores();
+  drawCalendar();
 }
 
+// popula meses no select
 function populateMonths(){
-  const sel = document.getElementById('monthSelector');
-  sel.innerHTML = '';
+  monthSel.innerHTML = '';
   const months = Object.keys(escala).sort();
-  months.forEach(m={
-    const opt = document.createElement('option');
-    opt.value = m;
-    const [y,mo]=m.split('-');
-    opt.textContent = `${mo}${y}`;
-    sel.appendChild(opt);
+  if(months.length===0){
+    setStatus('err','Erro: arquivo de escala está vazio ou sem meses. Verifique <code>escala.json</code>.');
+    return;
+  }
+  months.forEach(m=>{
+    const opt = document.createElement('option'); opt.value = m;
+    const [y,mo] = m.split('-'); opt.textContent = `${mo}/${y}`;
+    monthSel.appendChild(opt);
   });
-  if(months.length0) sel.value = months[0];
-  sel.onchange = drawCalendar;
+  monthSel.value = months[0];
+  monthSel.onchange = drawCalendar;
 }
 
+// popula colaboradores no filtro
 function populateColaboradores(){
   colaboradoresSet.clear();
-  Object.values(escala).forEach(m={
-    Object.values(m).forEach(d={
-      Object.values(d).forEach(v={
+  Object.values(escala).forEach(m=>{
+    Object.values(m).forEach(d=>{
+      Object.values(d).forEach(v=>{
         if(v) colaboradoresSet.add(v);
       });
     });
   });
-  const colSel = document.getElementById('colabFilter');
-   limpa mantendo o primeiro todos
-  colSel.querySelectorAll('optionnot([value=todos])').forEach(n=n.remove());
-  Array.from(colaboradoresSet).sort().forEach(name={
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
+  // limpa exceto a opção 'todos'
+  colSel.querySelectorAll('option:not([value="todos"])')?.forEach(n=>n.remove());
+  Array.from(colaboradoresSet).sort().forEach(name=>{
+    const opt = document.createElement('option'); opt.value=name; opt.textContent=name;
     colSel.appendChild(opt);
   });
   colSel.onchange = drawCalendar;
 }
 
+// desenha o calendário
 function drawCalendar(){
-  const cal = document.getElementById('calendar');
-  cal.innerHTML = '';
-  const month = document.getElementById('monthSelector').value;
-  const filtro = document.getElementById('colabFilter').value;
-  if(!month  !escala[month]) return;
+  calendar.innerHTML = '';
+  const month = monthSel.value;
+  const filtro = colSel.value;
+  if(!month || !escala[month]) {
+    calendar.innerHTML = '<div style="grid-column:1/-1;padding:16px;background:#fff7e6;border-radius:8px;color:#6a4a00">Nenhum dado para o mês selecionado.</div>';
+    return;
+  }
   const [year,monthNum] = month.split('-').map(Number);
-   JS Sunday=0 ... Saturday=6
   const firstDay = new Date(year, monthNum-1, 1).getDay();
   const daysInMonth = new Date(year, monthNum, 0).getDate();
 
-   add empty placeholders before 1st
-  for(let i=0;ifirstDay;i++){
-    const e = document.createElement('div');
-    e.className = 'empty';
-    cal.appendChild(e);
+  for(let i=0;i<firstDay;i++){
+    const e = document.createElement('div'); e.className='empty'; calendar.appendChild(e);
   }
 
-  for(let d=1; d=daysInMonth; d++){
+  for(let d=1; d<=daysInMonth; d++){
     const dd = String(d).padStart(2,'0');
-    const box = document.createElement('div');
-    box.className = 'day';
-    const title = document.createElement('h3');
-    title.textContent = dd;
-    box.appendChild(title);
+    const box = document.createElement('div'); box.className='day';
+    const title = document.createElement('h3'); title.textContent = dd; box.appendChild(title);
 
-    const diaObj = escala[month] && escala[month][dd]  escala[month][dd]  null;
+    const diaObj = (escala[month] && escala[month][dd]) ? escala[month][dd] : null;
     if(diaObj){
-      const addShift = (label, value) = {
-        if(!value) return;
-        if(filtro !== 'todos' && filtro !== value) return;
-        const el = document.createElement('div');
-        el.className = 'shift';
-        el.innerHTML = `strong${label}strong ${value}`;
-        box.appendChild(el);
-      };
-      addShift('Manhã', diaObj.manha  '');
-      addShift('Tarde', diaObj.tarde  '');
-      addShift('Noite', diaObj.noite  '');
+      [['Manhã','manha'],['Tarde','tarde'],['Noite','noite']].forEach(([label,key])=>{
+        const nome = diaObj[key] || '';
+        if(!nome) return;
+        if(filtro !== 'todos' && filtro !== nome) return;
+        const el = document.createElement('div'); el.className='shift';
+        el.innerHTML = `<strong>${label}:</strong> ${nome}`; box.appendChild(el);
+      });
     }
-    cal.appendChild(box);
+
+    calendar.appendChild(box);
   }
 }
 
-document.getElementById('printBtn').addEventListener('click', ()= window.print());
+// imprimir
+document.getElementById('printBtn').addEventListener('click', ()=> window.print());
 
- Carrega no start
-loadEscala();
-script
+// start
+tryLoadEscala();
+</script>
 
-body
-html
+</body>
+</html>
